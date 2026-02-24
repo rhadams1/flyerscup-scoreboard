@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flyers Cup Scoreboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: transparent;
+            overflow: hidden;
+            height: 100%;
+        }
+        .fc-scoreboard-wrapper {
+            position: relative;
+            width: 100%;
+            padding: 0 40px;
+            overflow: hidden;
+        }
+        .scoreboard-container {
+            overflow: hidden;
+            width: 100%;
+        }
+        .scoreboard-track {
+            display: flex;
+            gap: 10px;
+            transition: transform 0.3s ease;
+            padding: 10px 0;
+        }
+        .scroll-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: #CF4520;
+            color: white;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .scroll-btn:hover { background: #b83a1a; }
+        .scroll-left { left: 4px; }
+        .scroll-right { right: 4px; }
+        .game-card {
+            width: 260px;
+            min-width: 260px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            overflow: hidden;
+            flex-shrink: 0;
+            border-top: 3px solid #CF4520;
+        }
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: #CF4520;
+        }
+        .game-date { font-weight: 600; color: white; font-size: 0.85rem; }
+        .game-status { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
+        .game-status.final { background: #16a34a; color: white; }
+        .game-status.scheduled { background: #000000; color: white; }
+        .game-status.live { background: #ea580c; color: white; animation: pulse 1.5s ease-in-out infinite; }
+        .game-status.live::before { content: ''; display: inline-block; width: 6px; height: 6px; background: white; border-radius: 50%; margin-right: 4px; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .game-teams { padding: 10px 12px; }
+        .game-team {
+            display: flex;
+            align-items: center;
+            padding: 6px 0;
+        }
+        .game-team + .game-team { border-top: 1px solid #e2e8f0; }
+        .team-logo { width: 28px; height: 28px; object-fit: contain; margin-right: 8px; border-radius: 4px; }
+        .team-info { flex: 1; min-width: 0; }
+        .team-name { font-weight: 600; font-size: 0.85rem; color: #CF4520; }
+        .team-name.winner { color: #16a34a; }
+        .team-score { font-size: 1.1rem; font-weight: bold; min-width: 28px; text-align: center; color: #CF4520; }
+        .team-score.pending { color: #a8a9ad; }
+        .game-footer {
+            padding: 8px 12px;
+            background: #f7fafc;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .game-info { font-size: 0.75rem; color: #718096; }
+        .gs-link {
+            font-size: 0.75rem;
+            color: #000000;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .gs-link:hover { text-decoration: underline; }
+        .fc-loading, .fc-error { text-align: center; padding: 20px; color: #718096; }
+
+        @media (max-width: 600px) {
+            .fc-scoreboard-wrapper { padding: 0 36px; }
+            .scroll-btn { width: 28px; height: 28px; font-size: 18px; }
+            .game-card { width: 240px; min-width: 240px; }
+            .game-header { padding: 6px 10px; }
+            .game-date { font-size: 0.8rem; }
+            .game-status { font-size: 0.6rem; padding: 2px 6px; }
+            .game-teams { padding: 8px 10px; }
+            .game-team { padding: 5px 0; }
+            .team-logo { width: 26px; height: 26px; margin-right: 6px; }
+            .team-name { font-size: 0.8rem; }
+            .team-score { font-size: 1rem; }
+            .game-footer { padding: 6px 10px; }
+            .game-info { font-size: 0.7rem; }
+            .gs-link { font-size: 0.7rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="fc-scoreboard-wrapper">
+        <button class="scroll-btn scroll-left" id="scrollLeft">&#8249;</button>
+        <div class="scoreboard-container" id="scoreboardContainer">
+            <div class="scoreboard-track" id="scoreboardTrack">
+                <div class="fc-loading">Loading...</div>
+            </div>
+        </div>
+        <button class="scroll-btn scroll-right" id="scrollRight">&#8250;</button>
+    </div>
+
+    <script>
+        (function() {
+            var track = document.getElementById('scoreboardTrack');
+            var container = document.getElementById('scoreboardContainer');
+            var scrollPos = 0;
+            var maxScroll = 0;
+            var initialScrollDone = false;
+
+            function getCardWidth() {
+                return window.innerWidth <= 600 ? 250 : 270;
+            }
+
+            function updateScroll(newPos) {
+                scrollPos = Math.max(0, Math.min(maxScroll, newPos));
+                track.style.transform = 'translateX(-' + scrollPos + 'px)';
+            }
+
+            document.getElementById('scrollLeft').addEventListener('click', function() {
+                updateScroll(scrollPos - getCardWidth());
+            });
+
+            document.getElementById('scrollRight').addEventListener('click', function() {
+                updateScroll(scrollPos + getCardWidth());
+            });
+
+            // Touch swipe
+            var touchStartX = 0;
+            container.addEventListener('touchstart', function(e) {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+
+            container.addEventListener('touchend', function(e) {
+                var diff = touchStartX - e.changedTouches[0].screenX;
+                if (Math.abs(diff) > 50) {
+                    updateScroll(scrollPos + (diff > 0 ? getCardWidth() : -getCardWidth()));
+                }
+            }, { passive: true });
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                var div = document.createElement('div');
+                div.appendChild(document.createTextNode(str));
+                return div.innerHTML;
+            }
+
+            async function loadGames() {
+                try {
+                    var response = await fetch('/api/scoreboard?days_back=7&days_forward=7');
+                    var data = await response.json();
+                    if (data.error || !data.games || data.games.length === 0) {
+                        track.textContent = '';
+                        var msg = document.createElement('div');
+                        msg.className = 'fc-error';
+                        msg.textContent = 'No games available';
+                        track.appendChild(msg);
+                        return;
+                    }
+                    renderGames(data.games, data.today_index || 0);
+                } catch (e) {
+                    console.error(e);
+                    track.textContent = '';
+                    var msg = document.createElement('div');
+                    msg.className = 'fc-error';
+                    msg.textContent = 'Unable to load scores';
+                    track.appendChild(msg);
+                }
+            }
+
+            function renderGames(games, todayIndex) {
+                track.textContent = '';
+
+                games.forEach(function(g) {
+                    var done = g.status === 'completed';
+                    var live = g.status === 'live';
+                    var showScore = done || live;
+                    var homeW = done && g.home_score > g.away_score;
+                    var awayW = done && g.away_score > g.home_score;
+                    var dateStr = formatDate(g.date);
+                    var statusClass = done ? 'final' : (live ? 'live' : 'scheduled');
+                    var statusText = done ? 'Final' : (live ? 'Live' : 'Scheduled');
+
+                    var card = document.createElement('div');
+                    card.className = 'game-card';
+
+                    // Header
+                    var header = document.createElement('div');
+                    header.className = 'game-header';
+                    var dateEl = document.createElement('span');
+                    dateEl.className = 'game-date';
+                    dateEl.textContent = dateStr;
+                    var statusEl = document.createElement('span');
+                    statusEl.className = 'game-status ' + statusClass;
+                    statusEl.textContent = statusText;
+                    header.appendChild(dateEl);
+                    header.appendChild(statusEl);
+                    card.appendChild(header);
+
+                    // Teams
+                    var teams = document.createElement('div');
+                    teams.className = 'game-teams';
+                    teams.appendChild(buildTeamRow(g.away_team, g.away_logo, g.away_score, awayW, showScore));
+                    teams.appendChild(buildTeamRow(g.home_team, g.home_logo, g.home_score, homeW, showScore));
+                    card.appendChild(teams);
+
+                    // Footer
+                    var footer = document.createElement('div');
+                    footer.className = 'game-footer';
+                    var info = document.createElement('span');
+                    info.className = 'game-info';
+                    info.textContent = (g.time || '') + ' \u00B7 ' + (g.location || '');
+                    footer.appendChild(info);
+                    if (g.game_url) {
+                        var link = document.createElement('a');
+                        link.className = 'gs-link';
+                        link.href = g.game_url;
+                        link.target = '_blank';
+                        link.rel = 'noopener';
+                        link.textContent = 'Box Score';
+                        footer.appendChild(link);
+                    }
+                    card.appendChild(footer);
+
+                    track.appendChild(card);
+                });
+
+                setTimeout(function() {
+                    maxScroll = Math.max(0, track.scrollWidth - container.clientWidth);
+                    if (!initialScrollDone) {
+                        updateScroll(todayIndex * getCardWidth());
+                        initialScrollDone = true;
+                    }
+                }, 100);
+            }
+
+            function buildTeamRow(name, logo, score, isWinner, showScore) {
+                var row = document.createElement('div');
+                row.className = 'game-team';
+
+                if (logo) {
+                    var img = document.createElement('img');
+                    img.className = 'team-logo';
+                    img.src = logo;
+                    img.alt = '';
+                    img.loading = 'lazy';
+                    img.onerror = function() { this.style.display = 'none'; };
+                    row.appendChild(img);
+                }
+
+                var info = document.createElement('div');
+                info.className = 'team-info';
+                var nameEl = document.createElement('span');
+                nameEl.className = 'team-name' + (isWinner ? ' winner' : '');
+                nameEl.textContent = name || '';
+                info.appendChild(nameEl);
+                row.appendChild(info);
+
+                var scoreEl = document.createElement('span');
+                scoreEl.className = 'team-score' + (showScore ? '' : ' pending');
+                scoreEl.textContent = showScore ? String(score) : '-';
+                row.appendChild(scoreEl);
+
+                return row;
+            }
+
+            function formatDate(dateStr) {
+                if (!dateStr) return '';
+                try {
+                    var months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+                    var parts = dateStr.replace(',', '').split(' ');
+                    if (parts.length >= 2) {
+                        var month = months[parts[0]];
+                        var day = parseInt(parts[1]);
+                        var year = parts[2] ? parseInt(parts[2]) : new Date().getFullYear();
+                        if (!isNaN(month) && !isNaN(day)) {
+                            var date = new Date(year, month, day);
+                            var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                            return days[date.getDay()] + ', ' + parts[0] + ' ' + day;
+                        }
+                    }
+                } catch (e) {}
+                return dateStr;
+            }
+
+            loadGames();
+            setInterval(loadGames, 30 * 1000);
+
+            window.addEventListener('resize', function() {
+                maxScroll = Math.max(0, track.scrollWidth - container.clientWidth);
+            });
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flyers Cup Scoreboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="scoreboard">
+        <header class="header">
+            <nav class="nav">
+                <a href="/" class="active">Scoreboard</a>
+                <a href="/brackets">Playoffs</a>
+            </nav>
+            <h1>Flyers Cup Scoreboard</h1>
+            <p class="date" id="currentDate"></p>
+        </header>
+        <div id="content">
+            <div class="loading">Loading games...</div>
+        </div>
+        <footer class="footer">
+            <span id="lastUpdate">--</span>
+            <span>Auto-refreshes every 10s</span>
+        </footer>
+    </div>
+    <script src="/static/js/scoreboard.js"></script>
+</body>
+</html>

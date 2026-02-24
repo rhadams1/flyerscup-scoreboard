@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flyers Cup {{ title }}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        html, body { overflow: hidden; height: 100%; }
+
+        /* Branded header */
+        .bracket-header {
+            background: linear-gradient(180deg, #CF4520, #1a1a1a);
+            padding: 20px 24px 0;
+            text-align: center;
+            position: relative;
+        }
+        .bracket-header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+        .bracket-header-logo {
+            width: 56px;
+            height: 56px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+        .bracket-header h1 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .bracket-header-subtitle {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 12px;
+        }
+        .bracket-header-stripe {
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-red), var(--gold), var(--primary-red));
+        }
+
+        @media (max-width: 640px) {
+            .bracket-header { padding: 14px 16px 0; }
+            .bracket-header-logo { width: 40px; height: 40px; }
+            .bracket-header h1 { font-size: 1.15rem; }
+        }
+
+        /* Bracket tabs */
+        .bracket-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .bracket-tab {
+            padding: 8px 18px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            background: var(--card-bg);
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            color: var(--text-secondary);
+        }
+        .bracket-tab:hover {
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+        }
+        .bracket-tab.active {
+            border-color: var(--primary-blue);
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        /* Bracket layout */
+        .bracket-scroll-wrap {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 16px;
+        }
+        .bracket {
+            display: flex;
+            align-items: stretch;
+            min-width: max-content;
+            padding: 0 16px;
+        }
+        .bracket-round {
+            display: flex;
+            flex-direction: column;
+            min-width: 240px;
+            flex-shrink: 0;
+        }
+        .bracket-round-header {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 0 12px 12px;
+            font-weight: 600;
+        }
+        .bracket-round-games {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        /* Bracket pair */
+        .bracket-pair {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            justify-content: center;
+            gap: 8px;
+            padding: 4px 0;
+            position: relative;
+        }
+
+        /* Connector lines between rounds */
+        .bracket-connectors {
+            width: 40px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .connector-group {
+            flex: 1;
+            position: relative;
+        }
+        .connector-group .connector-vert {
+            position: absolute;
+            left: 0;
+            top: 25%;
+            bottom: 25%;
+            width: 2px;
+            background: rgba(207, 69, 32, 0.3);
+        }
+        .connector-group .connector-horiz {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-1px);
+            right: 0;
+            height: 2px;
+            background: rgba(207, 69, 32, 0.3);
+        }
+        .connector-group.passthrough .connector-horiz {
+            top: 50%;
+        }
+
+        /* Game card */
+        .bracket-game {
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            margin: 0 16px;
+            min-width: 210px;
+            position: relative;
+        }
+        .bracket-game-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 10px;
+            background: #FAFAFA;
+            border-bottom: 1px solid var(--border);
+            border-radius: 8px 8px 0 0;
+            gap: 6px;
+        }
+        .bracket-game-number {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: white;
+            background: var(--primary-blue);
+            padding: 1px 6px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+        .bracket-game-date {
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        .bracket-game-status {
+            font-size: 0.6rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 1px 6px;
+            border-radius: 3px;
+            letter-spacing: 0.02em;
+            flex-shrink: 0;
+        }
+        .bracket-game-status.live {
+            background: var(--orange);
+            color: white;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        .bracket-game-status.final {
+            background: var(--green);
+            color: white;
+        }
+
+        /* Team row */
+        .bracket-game-team {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-bottom: 1px solid #F0F0F0;
+            transition: background 0.15s;
+        }
+        .bracket-game-team:last-of-type {
+            border-bottom: none;
+        }
+        .bracket-game-team.bracket-winner {
+            background: rgba(207, 69, 32, 0.06);
+        }
+        .bracket-team-logo {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+        .bracket-team-name {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .bracket-champion-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 0.55rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--gold-dark);
+            background: rgba(212, 168, 67, 0.15);
+            padding: 2px 6px;
+            border-radius: 3px;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .bracket-team-seed {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+        }
+        .bracket-team-score {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            min-width: 18px;
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .bracket-winner .bracket-team-score {
+            color: var(--primary-blue);
+        }
+
+        /* Game meta */
+        .bracket-game-meta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
+            background: #FAFAFA;
+            border-top: 1px solid #F0F0F0;
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+        }
+        .bracket-meta-time::before {
+            content: '';
+            display: inline-block;
+            width: 10px; height: 10px;
+            margin-right: 3px; vertical-align: -1px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 6v6l4 2'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+        .bracket-meta-venue::before {
+            content: '';
+            display: inline-block;
+            width: 10px; height: 10px;
+            margin-right: 3px; margin-left: 6px; vertical-align: -1px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E") no-repeat center/contain;
+        }
+
+        /* OT / SO indicator */
+        .bracket-game-extra {
+            display: flex;
+            align-items: center;
+            padding: 2px 10px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--primary-red);
+            background: rgba(227, 24, 55, 0.06);
+            border-top: 1px solid #F0F0F0;
+        }
+
+        /* Box score link */
+        .bracket-game-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 5px 10px;
+            background: #FAFAFA;
+            border-top: 1px solid #F0F0F0;
+            border-radius: 0 0 8px 8px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--primary-red);
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .bracket-game-link:hover { background: #FFF5F5; }
+
+        /* Championship card */
+        .bracket-game-championship {
+            border-top: 3px solid var(--gold);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 0 8px rgba(212, 168, 67, 0.15);
+        }
+
+        /* Live game highlight */
+        .bracket-game.bracket-live {
+            border-left: 3px solid var(--orange);
+            background: linear-gradient(135deg, var(--card-bg) 0%, var(--live-glow) 100%);
+        }
+
+        /* Seeds legend */
+        .seeds-legend {
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .seeds-legend-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .seeds-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 24px;
+        }
+        .seed-item {
+            font-size: 0.75rem;
+            color: var(--text-primary);
+        }
+        .seed-num {
+            font-weight: 700;
+            color: var(--primary-blue);
+            margin-right: 4px;
+        }
+
+        /* Branded footer */
+        .bracket-footer {
+            background: linear-gradient(180deg, #1a1a1a, #111111);
+            padding: 16px 24px;
+            text-align: center;
+            margin-top: 24px;
+        }
+        .bracket-footer-brand {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 6px;
+        }
+        .bracket-footer-meta {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.4);
+        }
+        .bracket-footer-stripe {
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-red), var(--gold), var(--primary-red));
+        }
+
+        /* Mobile */
+        @media (max-width: 640px) {
+            .bracket-tab { padding: 6px 12px; font-size: 0.75rem; }
+            .bracket-round { min-width: 200px; }
+            .bracket-game { min-width: 180px; margin: 0 8px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="bracket-header">
+        <div class="bracket-header-inner">
+            <h1>Flyers Cup 2026</h1>
+        </div>
+        <div class="bracket-header-subtitle">{{ title }}</div>
+    </header>
+    <div class="bracket-header-stripe"></div>
+
+    <div class="scoreboard">
+        <div class="bracket-tabs" id="bracketTabs" style="margin-top: 20px;"></div>
+
+        <div id="content">
+            <div class="loading">Loading brackets...</div>
+        </div>
+
+    </div>
+
+    <div class="bracket-footer-stripe"></div>
+    <footer class="bracket-footer">
+        <div class="bracket-footer-brand">Flyers Cup Tournament</div>
+        <div class="bracket-footer-meta">
+            <span id="lastUpdate">--</span>
+            <span>Auto-refreshes every 10s</span>
+        </div>
+    </footer>
+
+    <script>
+        // --- Safe DOM helpers (no innerHTML) ---
+        function el(tag, className, children) {
+            const node = document.createElement(tag);
+            if (className) node.className = className;
+            if (children) {
+                if (!Array.isArray(children)) children = [children];
+                children.forEach(c => {
+                    if (typeof c === "string") node.appendChild(document.createTextNode(c));
+                    else if (c) node.appendChild(c);
+                });
+            }
+            return node;
+        }
+
+        function checkLive(status) {
+            if (!status) return false;
+            const s = status.toLowerCase();
+            return s.includes("progress") || s.includes("period") ||
+                   s.includes("intermission") || s.includes("overtime");
+        }
+
+        const BRACKET_GROUP = "{{ group }}";
+        let bracketData = null;
+        let activeTab = null;
+
+        async function fetchBrackets() {
+            try {
+                const res = await fetch("/api/brackets/" + BRACKET_GROUP);
+                const data = await res.json();
+                bracketData = data.brackets;
+
+                if (!activeTab && bracketData.length > 0) {
+                    activeTab = bracketData[0].key;
+                }
+
+                renderTabs();
+                renderBracket();
+                updateFooter(data);
+            } catch (err) {
+                document.getElementById("content").replaceChildren(
+                    el("div", "no-games", "Error loading brackets")
+                );
+            }
+        }
+
+        function renderTabs() {
+            const container = document.getElementById("bracketTabs");
+            container.replaceChildren();
+
+            bracketData.forEach(b => {
+                const btn = el("button", "bracket-tab" + (b.key === activeTab ? " active" : ""), b.name);
+                btn.dataset.key = b.key;
+                btn.addEventListener("click", () => {
+                    activeTab = b.key;
+                    container.querySelectorAll(".bracket-tab").forEach(t => t.classList.remove("active"));
+                    btn.classList.add("active");
+                    renderBracket();
+                });
+                container.appendChild(btn);
+            });
+        }
+
+        function renderBracket() {
+            const bracket = bracketData.find(b => b.key === activeTab);
+            const content = document.getElementById("content");
+            if (!bracket || !bracket.rounds || bracket.rounds.length === 0) {
+                content.replaceChildren(el("div", "no-games", "No bracket data available"));
+                return;
+            }
+
+            const scrollWrap = el("div", "bracket-scroll-wrap");
+            const bracketEl = el("div", "bracket");
+            const rounds = bracket.rounds;
+            const lastIdx = rounds.length - 1;
+
+            rounds.forEach((round, i) => {
+                // Add connector before this round (except first)
+                if (i > 0) {
+                    const prevCount = rounds[i - 1].games.length;
+                    const currCount = round.games.length;
+                    bracketEl.appendChild(buildConnectors(prevCount, currCount));
+                }
+
+                const isChampionship = (i === lastIdx);
+                const roundEl = el("div", "bracket-round" + (isChampionship ? " bracket-round-final" : ""));
+                roundEl.appendChild(el("div", "bracket-round-header", round.name));
+
+                const gamesEl = el("div", "bracket-round-games");
+                const pair = el("div", "bracket-pair");
+                round.games.forEach(g => pair.appendChild(buildGameCard(g, isChampionship)));
+                gamesEl.appendChild(pair);
+                roundEl.appendChild(gamesEl);
+                bracketEl.appendChild(roundEl);
+            });
+
+            scrollWrap.appendChild(bracketEl);
+
+            // Seeds legend (only if any seeds exist)
+            const legend = buildSeedsLegend(bracket);
+            const children = [scrollWrap];
+            if (legend) children.push(legend);
+            content.replaceChildren(...children);
+        }
+
+        function buildConnectors(prevGames, nextGames) {
+            const connectors = el("div", "bracket-connectors");
+            // Number of connector groups = number of games in the next round
+            const groups = nextGames;
+            const converging = prevGames > nextGames;
+
+            for (let i = 0; i < groups; i++) {
+                if (converging) {
+                    // Bracket-style: vertical + horizontal
+                    const group = el("div", "connector-group");
+                    group.appendChild(el("div", "connector-vert"));
+                    group.appendChild(el("div", "connector-horiz"));
+                    connectors.appendChild(group);
+                } else {
+                    // Pass-through: just horizontal lines
+                    const group = el("div", "connector-group passthrough");
+                    group.appendChild(el("div", "connector-horiz"));
+                    connectors.appendChild(group);
+                }
+            }
+            return connectors;
+        }
+
+        function buildGameCard(game, isChampionship) {
+            const total = game.scoreboard.total;
+            const homeScore = total.home;
+            const visitorScore = total.visitor;
+            const status = (game.status || "").toLowerCase();
+            const isFinal = status === "final" || status === "unofficial";
+            const isLive = checkLive(game.status);
+            const showScore = isFinal || isLive;
+            const homeWins = isFinal && homeScore > visitorScore;
+            const visitorWins = isFinal && visitorScore > homeScore;
+
+            let cardClass = "bracket-game";
+            if (isChampionship) cardClass += " bracket-game-championship";
+            if (isLive) cardClass += " bracket-live";
+
+            const card = el("div", cardClass);
+            card.dataset.gameId = game.id;
+
+            // Header
+            const header = el("div", "bracket-game-header");
+            header.appendChild(el("span", "bracket-game-number", game.game_number || ""));
+
+            if (isLive) {
+                const statusBadge = el("span", "bracket-game-status live", game.status);
+                header.appendChild(statusBadge);
+            } else if (isFinal) {
+                header.appendChild(el("span", "bracket-game-status final", "Final"));
+            }
+
+            header.appendChild(el("span", "bracket-game-date", game.date || ""));
+            card.appendChild(header);
+
+            // Team rows (visitor first, home second — standard bracket convention)
+            card.appendChild(buildTeamRow(game.visitor, showScore ? visitorScore : null, visitorWins, isChampionship && visitorWins));
+            card.appendChild(buildTeamRow(game.home, showScore ? homeScore : null, homeWins, isChampionship && homeWins));
+
+            // OT/SO indicator
+            if (isFinal && game.has_overtime) {
+                card.appendChild(el("div", "bracket-game-extra", "OT"));
+            } else if (isFinal && game.has_shootout) {
+                card.appendChild(el("div", "bracket-game-extra", "SO"));
+            }
+
+            // Meta (time + venue)
+            const meta = el("div", "bracket-game-meta");
+            meta.appendChild(el("span", "bracket-meta-time", game.scheduled_time || ""));
+            meta.appendChild(el("span", "bracket-meta-venue", game.location || ""));
+            card.appendChild(meta);
+
+            // Box score link
+            if (game.gamesheet_url) {
+                const link = document.createElement("a");
+                link.className = "bracket-game-link";
+                link.href = game.gamesheet_url;
+                link.target = "_blank";
+                link.rel = "noopener";
+                link.textContent = "Box Score";
+                card.appendChild(link);
+            }
+
+            return card;
+        }
+
+        function buildTeamRow(team, score, isWinner, isChampion) {
+            const row = el("div", "bracket-game-team" + (isWinner ? " bracket-winner" : ""));
+
+            // Logo
+            if (team.logo_url) {
+                const img = document.createElement("img");
+                img.className = "bracket-team-logo";
+                img.src = team.logo_url;
+                img.alt = "";
+                img.loading = "lazy";
+                img.onerror = function() { this.style.display = "none"; };
+                row.appendChild(img);
+            }
+
+            // Name
+            row.appendChild(el("span", "bracket-team-name", team.name));
+
+            // Champion tag
+            if (isChampion) {
+                const tag = el("span", "bracket-champion-tag", "Champion");
+                row.appendChild(tag);
+            }
+
+            // Seed
+            if (team.seed) {
+                row.appendChild(el("span", "bracket-team-seed", "#" + team.seed));
+            }
+
+            // Score
+            if (score != null) {
+                const scoreEl = el("span", "bracket-team-score", String(score));
+                row.appendChild(scoreEl);
+            }
+
+            return row;
+        }
+
+        function buildSeedsLegend(bracket) {
+            const seedMap = {};
+            bracket.rounds.forEach(round => {
+                round.games.forEach(g => {
+                    if (g.home.seed) seedMap[g.home.seed] = g.home.name;
+                    if (g.visitor.seed) seedMap[g.visitor.seed] = g.visitor.name;
+                });
+            });
+
+            const keys = Object.keys(seedMap);
+            if (keys.length === 0) return null;
+
+            const legend = el("div", "seeds-legend");
+            legend.appendChild(el("div", "seeds-legend-title", "Seeds"));
+
+            const list = el("div", "seeds-list");
+            keys.sort((a, b) => a - b).forEach(s => {
+                const item = el("span", "seed-item");
+                item.appendChild(el("span", "seed-num", "#" + s));
+                item.appendChild(document.createTextNode(seedMap[s]));
+                list.appendChild(item);
+            });
+            legend.appendChild(list);
+
+            return legend;
+        }
+
+        function updateFooter(data) {
+            const footer = document.getElementById("lastUpdate");
+            if (!footer) return;
+            if (data.last_live_update) {
+                footer.textContent = "Live update: " + new Date(data.last_live_update).toLocaleTimeString();
+            } else if (data.last_schedule_fetch) {
+                footer.textContent = "Updated: " + new Date(data.last_schedule_fetch).toLocaleTimeString();
+            }
+        }
+
+        // Initial load + polling
+        fetchBrackets();
+        setInterval(fetchBrackets, 10000);
+    </script>
+</body>
+</html>

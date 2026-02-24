@@ -1,0 +1,5 @@
+flask
+flask-cors
+requests
+gunicorn
+gamesheet @ git+https://github.com/rhadams1/gamesheet.git

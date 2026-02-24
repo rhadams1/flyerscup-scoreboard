@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flyers Cup {{ title }}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        html, body { overflow: hidden; height: 100%; }
+
+        /* Branded header */
+        .bracket-header {
+            background: linear-gradient(180deg, #CF4520, #1a1a1a);
+            padding: 20px 24px 0;
+            text-align: center;
+            position: relative;
+        }
+        .bracket-header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+        .bracket-header-logo {
+            width: 56px;
+            height: 56px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+        .bracket-header h1 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .bracket-header-subtitle {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 12px;
+        }
+        .bracket-header-stripe {
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-red), var(--gold), var(--primary-red));
+        }
+
+        @media (max-width: 640px) {
+            .bracket-header { padding: 14px 16px 0; }
+            .bracket-header-logo { width: 40px; height: 40px; }
+            .bracket-header h1 { font-size: 1.15rem; }
+        }
+
+        /* Bracket tabs */
+        .bracket-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin: 20px 0 0;
+            flex-wrap: wrap;
+            padding: 0 16px;
+        }
+        .bracket-tab {
+            padding: 8px 18px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            background: var(--card-bg);
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            color: var(--text-secondary);
+        }
+        .bracket-tab:hover {
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+        }
+        .bracket-tab.active {
+            border-color: var(--primary-blue);
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        /* Iframe container */
+        .bracket-iframe-wrap {
+            width: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        .bracket-iframe-wrap iframe {
+            width: 100%;
+            height: calc(100vh - 200px);
+            min-height: 1000px;
+            border: none;
+            display: block;
+        }
+
+        /* Branded footer */
+        .bracket-footer {
+            background: linear-gradient(180deg, #1a1a1a, #111111);
+            padding: 16px 24px;
+            text-align: center;
+        }
+        .bracket-footer-brand {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 6px;
+        }
+        .bracket-footer-meta {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.4);
+        }
+        .bracket-footer-meta a {
+            color: rgba(255,255,255,0.5);
+            text-decoration: none;
+        }
+        .bracket-footer-meta a:hover {
+            color: rgba(255,255,255,0.7);
+        }
+        .bracket-footer-stripe {
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-red), var(--gold), var(--primary-red));
+        }
+
+        @media (max-width: 640px) {
+            .bracket-tab { padding: 6px 12px; font-size: 0.75rem; }
+            .bracket-iframe-wrap iframe {
+                height: calc(100vh - 180px);
+                min-height: 500px;
+            }
+        }
+
+        body { margin: 0; }
+    </style>
+</head>
+<body>
+    <header class="bracket-header">
+        <div class="bracket-header-inner">
+            <h1>Flyers Cup 2026</h1>
+        </div>
+        <div class="bracket-header-subtitle">{{ title }}</div>
+    </header>
+    <div class="bracket-header-stripe"></div>
+
+    <div class="bracket-tabs" id="bracketTabs"></div>
+
+    <div class="bracket-iframe-wrap">
+        <iframe id="bracketFrame" src="" allowfullscreen></iframe>
+    </div>
+
+    <div class="bracket-footer-stripe"></div>
+    <footer class="bracket-footer">
+        <div class="bracket-footer-brand">Flyers Cup Tournament</div>
+        <div class="bracket-footer-meta">
+            <span>Powered by GameSheet</span>
+            <span>&middot;</span>
+            <a href="https://gamesheetstats.com/seasons/13707" target="_blank" rel="noopener">View on GameSheet</a>
+        </div>
+    </footer>
+
+    <script>
+        (function() {
+            var brackets = {{ brackets_json | safe }};
+            var activeKey = brackets[0].key;
+            var tabsEl = document.getElementById('bracketTabs');
+            var frameEl = document.getElementById('bracketFrame');
+
+            function renderTabs() {
+                tabsEl.textContent = '';
+                brackets.forEach(function(b) {
+                    var btn = document.createElement('button');
+                    btn.className = 'bracket-tab' + (b.key === activeKey ? ' active' : '');
+                    btn.textContent = b.name;
+                    btn.addEventListener('click', function() {
+                        activeKey = b.key;
+                        tabsEl.querySelectorAll('.bracket-tab').forEach(function(t) {
+                            t.classList.remove('active');
+                        });
+                        btn.classList.add('active');
+                        loadBracket();
+                    });
+                    tabsEl.appendChild(btn);
+                });
+            }
+
+            function loadBracket() {
+                var b = brackets.find(function(x) { return x.key === activeKey; });
+                if (b) {
+                    frameEl.src = b.url;
+                }
+            }
+
+            renderTabs();
+            loadBracket();
+        })();
+    </script>
+</body>
+</html>
