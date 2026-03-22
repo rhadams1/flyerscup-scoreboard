@@ -804,8 +804,8 @@ def start_background():
     logger.info("Background thread started")
 
 
-# Auto-start when imported by gunicorn --preload
-start_background()
+# Tournament is over — no need to poll for live scores
+# start_background()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001, debug=False)
